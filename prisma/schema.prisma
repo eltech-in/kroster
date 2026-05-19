@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ─── NextAuth Models ─────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid()) @db.VarChar(191)
+  name          String?
+  email         String    @unique @db.VarChar(191)
+  emailVerified DateTime?
+  image         String?   @db.VarChar(500)
+  role          UserRole  @default(MEMBER)
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid()) @db.VarChar(191)
+  userId            String  @db.VarChar(191)
+  type              String  @db.VarChar(191)
+  provider          String  @db.VarChar(191)
+  providerAccountId String  @db.VarChar(191)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(191)
+  scope             String? @db.VarChar(191)
+  id_token          String? @db.Text
+  session_state     String? @db.VarChar(191)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid()) @db.VarChar(191)
+  sessionToken String   @unique @db.VarChar(191)
+  userId       String   @db.VarChar(191)
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String   @db.VarChar(191)
+  token      String   @unique @db.VarChar(191)
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── OTP Tokens ──────────────────────────────────────────────────────────────
+
+model OtpToken {
+  id        String   @id @default(cuid()) @db.VarChar(191)
+  email     String   @db.VarChar(191)
+  token     String   @db.VarChar(10)
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("otp_tokens")
+}
+
+// ─── Categories ──────────────────────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid()) @db.VarChar(191)
+  name        String   @db.VarChar(191)
+  slug        String   @unique @db.VarChar(191)
+  description String?  @db.Text
+  icon        String?  @db.VarChar(100)
+  color       String?  @db.VarChar(20)
+  members     Member[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("categories")
+}
+
+// ─── Members ─────────────────────────────────────────────────────────────────
+
+model Member {
+  id                  String          @id @default(cuid()) @db.VarChar(191)
+  fullName            String          @db.VarChar(191)
+  slug                String          @unique @db.VarChar(191)
+  businessName        String          @db.VarChar(191)
+  categoryId          String?         @db.VarChar(191)
+  category            Category?       @relation(fields: [categoryId], references: [id])
+  phone               String?         @db.VarChar(30)
+  whatsapp            String?         @db.VarChar(30)
+  email               String?         @db.VarChar(191)
+  website             String?         @db.VarChar(500)
+  shortIntro          String?         @db.Text
+  fullDescription     String?         @db.Text
+  address             String?         @db.Text
+  googleMapsUrl       String?         @db.Text
+  profileImage        String?         @db.VarChar(500)
+  companyLogo         String?         @db.VarChar(500)
+  galleryImages       Json?
+  facebook            String?         @db.VarChar(500)
+  linkedin            String?         @db.VarChar(500)
+  instagram           String?         @db.VarChar(500)
+  youtube             String?         @db.VarChar(500)
+  referralExpectation String?         @db.Text
+  services            String?         @db.Text
+  businessTiming      String?         @db.VarChar(500)
+  featured            Boolean         @default(false)
+  displayOrder        Int             @default(999)
+  memberRole          MemberRole      @default(MEMBER)
+  isActive            Boolean         @default(true)
+  testimonials        Testimonial[]
+  analytics           MemberAnalytics?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([slug])
+  @@index([memberRole])
+  @@index([displayOrder])
+  @@map("members")
+}
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+
+model Testimonial {
+  id         String   @id @default(cuid()) @db.VarChar(191)
+  memberId   String   @db.VarChar(191)
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  authorName String   @db.VarChar(191)
+  content    String   @db.Text
+  rating     Int      @default(5)
+  isPublic   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+
+model Event {
+  id          String   @id @default(cuid()) @db.VarChar(191)
+  title       String   @db.VarChar(191)
+  slug        String   @unique @db.VarChar(191)
+  description String?  @db.Text
+  eventDate   DateTime
+  location    String?  @db.VarChar(500)
+  image       String?  @db.VarChar(500)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("events")
+}
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+model MemberAnalytics {
+  id           String   @id @default(cuid()) @db.VarChar(191)
+  memberId     String   @unique @db.VarChar(191)
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  profileViews Int      @default(0)
+  callClicks   Int      @default(0)
+  waClicks     Int      @default(0)
+  webClicks    Int      @default(0)
+  shareCount   Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@map("member_analytics")
+}
+
+// ─── Site Settings ────────────────────────────────────────────────────────────
+
+model Setting {
+  id        String   @id @default(cuid()) @db.VarChar(191)
+  key       String   @unique @db.VarChar(191)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum MemberRole {
+  ED
+  SUPPORT
+  HEAD_TABLE
+  MEMBER
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+  PUBLIC
+}
